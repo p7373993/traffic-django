@@ -1,21 +1,24 @@
 from django.shortcuts import render
 from rest_framework import viewsets
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view
 from rest_framework.response import Response
-from django.db.models import Sum
-from .models import Intersection, TrafficVolume
+from django.db.models import Sum, Avg
+from .models import Intersection, TrafficVolume, TotalTrafficVolume
 from .serializers import IntersectionSerializer, TrafficVolumeSerializer
 import logging
 import sys
+from datetime import datetime, timedelta
+from rest_framework import status
+from django.utils import timezone
 
 # 로깅 설정 수정
 logging.basicConfig(
-    filename='django_log.txt',
-    filemode='w',
-    encoding='utf-8',
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    force=True
+    handlers=[
+        logging.FileHandler('django_log.txt', encoding='utf-8'),
+        logging.StreamHandler(sys.stdout)  # 콘솔에도 출력
+    ]
 )
 logger = logging.getLogger(__name__)
 
@@ -89,3 +92,99 @@ class TrafficVolumeViewSet(viewsets.ModelViewSet):
         if intersection_id:
             queryset = queryset.filter(intersection_id=intersection_id)
         return queryset
+
+@api_view(['GET'])
+def get_intersection_traffic_data(request, intersection_id):
+    print(f"API 호출됨 - 교차로 ID: {intersection_id}")  # 콘솔에 즉시 출력
+    logger.info(f"교차로 교통 데이터 요청 받음 - 교차로 ID: {intersection_id}")
+    
+    try:
+        # URL 파라미터에서 시작 시간과 종료 시간 가져오기
+        start_time = request.GET.get('start_time')
+        end_time = request.GET.get('end_time')
+        print(f"요청된 시간 범위 - 시작: {start_time}, 종료: {end_time}")  # 콘솔에 즉시 출력
+        logger.info(f"요청된 시간 범위 - 시작: {start_time}, 종료: {end_time}")
+
+        if not start_time or not end_time:
+            error_msg = "start_time과 end_time 파라미터가 필요합니다."
+            print(error_msg)  # 콘솔에 즉시 출력
+            logger.error(error_msg)
+            return Response({'error': error_msg}, status=400)
+
+        # 시간 형식 변환
+        try:
+            start_time = datetime.fromisoformat(start_time.replace('Z', '+00:00'))
+            end_time = datetime.fromisoformat(end_time.replace('Z', '+00:00'))
+            print(f"변환된 시간 범위 - 시작: {start_time}, 종료: {end_time}")  # 콘솔에 즉시 출력
+            logger.info(f"변환된 시간 범위 - 시작: {start_time}, 종료: {end_time}")
+        except ValueError as e:
+            error_msg = f"시간 형식이 잘못되었습니다: {str(e)}"
+            print(error_msg)  # 콘솔에 즉시 출력
+            logger.error(error_msg)
+            return Response({'error': error_msg}, status=400)
+
+        # 교차로 존재 여부 확인
+        intersection_exists = Intersection.objects.filter(id=intersection_id).exists()
+        print(f"교차로 존재 여부: {intersection_exists}")  # 콘솔에 즉시 출력
+        logger.info(f"교차로 존재 여부: {intersection_exists}")
+
+        if not intersection_exists:
+            error_msg = f"교차로 ID {intersection_id}가 존재하지 않습니다."
+            print(error_msg)  # 콘솔에 즉시 출력
+            logger.error(error_msg)
+            return Response({'error': error_msg}, status=404)
+
+        # 해당 교차로의 교통 데이터 조회
+        traffic_data = TotalTrafficVolume.objects.filter(
+            intersection_id=intersection_id,
+            datetime__range=(start_time, end_time)
+        ).order_by('datetime')
+        
+        print(f"조회된 데이터 수: {traffic_data.count()}")  # 콘솔에 즉시 출력
+        logger.info(f"조회된 데이터 수: {traffic_data.count()}")
+        
+        if traffic_data.count() == 0:
+            warning_msg = "해당 조건에 맞는 데이터가 없습니다."
+            print(warning_msg)  # 콘솔에 즉시 출력
+            logger.warning(warning_msg)
+
+        # 데이터 직렬화
+        data = [{
+            'intersection_id': item.intersection_id,
+            'datetime': item.datetime,
+            'total_volume': item.total_volume,
+            'average_speed': item.average_speed
+        } for item in traffic_data]
+
+        print(f"응답 데이터: {data}")  # 콘솔에 즉시 출력
+        logger.info(f"응답 데이터: {data}")
+        return Response(data)
+    except Exception as e:
+        error_msg = f"에러 발생: {str(e)}"
+        print(error_msg)  # 콘솔에 즉시 출력
+        logger.error(error_msg, exc_info=True)
+        return Response({'error': str(e)}, status=400)
+
+@api_view(['GET'])
+def get_all_intersections_traffic_data(request):
+    try:
+        # URL 파라미터에서 시간 가져오기
+        time = request.GET.get('time')
+        if not time:
+            time = timezone.now()
+
+        # 모든 교차로의 특정 시간대 교통 데이터 조회
+        traffic_data = TotalTrafficVolume.objects.filter(
+            timestamp=time
+        ).order_by('intersection_id')
+
+        # 데이터 직렬화
+        data = [{
+            'intersection_id': item.intersection_id,
+            'timestamp': item.timestamp,
+            'total_volume': item.total_volume
+        } for item in traffic_data]
+
+        return Response(data)
+    except Exception as e:
+        return Response({'error': str(e)}, status=400)
