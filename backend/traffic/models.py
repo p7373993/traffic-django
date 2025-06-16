@@ -40,3 +40,18 @@ class TrafficVolume(models.Model):
             models.Index(fields=['intersection', 'datetime']),
             models.Index(fields=['direction']),
         ]
+
+class TotalTrafficVolume(models.Model):
+    intersection = models.ForeignKey(Intersection, on_delete=models.CASCADE)
+    datetime = models.DateTimeField()
+    total_volume = models.IntegerField()
+    average_speed = models.FloatField()
+
+    class Meta:
+        db_table = 'total_traffic_volume'
+        indexes = [
+            models.Index(fields=['intersection', 'datetime']),
+        ]
+
+    def __str__(self):
+        return f"{self.intersection.name} - {self.datetime}: {self.total_volume}대, {self.average_speed}km/h"
