@@ -1,4 +1,15 @@
-backend/traffic/__pycache__/views.cpython-311.pyc
-backend/backend/__pycache__/urls.cpython-311.pyc
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+media
+
+# Project specific
 backend/debug.log
 backend/django_log.txt
