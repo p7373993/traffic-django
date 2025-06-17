@@ -8,7 +8,7 @@ router.register(r'traffic-volumes', TrafficVolumeViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
-    # 교차로 교통 데이터 API
+    # 교차로 교통 데이터 API             
     path('traffic-data/intersection/<int:intersection_id>/', get_intersection_traffic_data, name='get_intersection_traffic_data'),
     path('traffic-data/intersections/', get_all_intersections_traffic_data, name='get_all_intersections_traffic_data'),
 ] 

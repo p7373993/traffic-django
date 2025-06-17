@@ -2,9 +2,9 @@ from django.shortcuts import render
 from rest_framework import viewsets
 from rest_framework.decorators import action, api_view
 from rest_framework.response import Response
-from django.db.models import Sum, Avg
+from django.db.models import Sum, Avg, OuterRef, Subquery
 from .models import Intersection, TrafficVolume, TotalTrafficVolume
-from .serializers import IntersectionSerializer, TrafficVolumeSerializer
+from .serializers import IntersectionSerializer, TotalTrafficVolumeSerializer, TrafficVolumeSerializer
 import logging
 import sys
 from datetime import datetime, timedelta
@@ -33,7 +33,7 @@ class IntersectionViewSet(viewsets.ModelViewSet):
         queryset = self.get_queryset()
         logger.info(f"조회된 교차로 수: {queryset.count()}")
         serializer = self.get_serializer(queryset, many=True)
-        logger.info(f"직렬화된 데이터: {serializer.data}")
+        #logger.info(f"직렬화된 데이터: {serializer.data}")
         return Response(serializer.data)
 
     @action(detail=False, methods=['get'])
@@ -73,7 +73,54 @@ class IntersectionViewSet(viewsets.ModelViewSet):
         traffic_volumes = TrafficVolume.objects.filter(intersection=intersection)
         serializer = TrafficVolumeSerializer(traffic_volumes, many=True)
         return Response(serializer.data)
+    
+    @action(detail=True, methods=['get'])
+    def total_volumes(self, request, pk=None):
+        """특정 교차로의 총 교통량 및 평균 속도 데이터"""
+        intersection = self.get_object()
+        total_volumes = TotalTrafficVolume.objects.filter(intersection=intersection).order_by("datetime")
+        serializer = TotalTrafficVolumeSerializer(total_volumes, many=True)
+        return Response(serializer.data)
 
+    @action(detail=False, methods=['get'])
+    def latest_volume(self, request):
+        """통행량 데이터가 존재하는 교차로들의 최신 TotalTrafficVolume만 모아 반환"""
+        try:
+            # Subquery로 각 교차로의 최신 TotalTrafficVolume 1개 추출
+            latest_qs = TotalTrafficVolume.objects.filter(
+                intersection=OuterRef('pk')
+            ).order_by('-datetime')
+
+            # annotate로 최신 총량/속도/시간을 각 교차로에 붙임
+            intersections = Intersection.objects.annotate(
+                latest_volume=Subquery(latest_qs.values('total_volume')[:1]),
+                latest_speed=Subquery(latest_qs.values('average_speed')[:1]),
+                latest_time=Subquery(latest_qs.values('datetime')[:1])
+            ).filter(
+                latest_volume__isnull=False  # 통행량 데이터가 있는 교차로만 필터링
+            )
+
+            data = []
+            for inter in intersections:
+                data.append({
+                    "id": inter.id,
+                    "name": inter.name,
+                    "latitude": inter.latitude,
+                    "longitude": inter.longitude,
+                    "total_volume": inter.latest_volume,
+                    "average_speed": inter.latest_speed,
+                    "datetime": inter.latest_time,
+                })
+
+            return Response(data)
+
+        except Exception as e:
+            logger.error(f"latest_volume API 오류: {str(e)}", exc_info=True)
+            return Response({"error": str(e)}, status=500)
+    
+
+
+    
 class TrafficVolumeViewSet(viewsets.ModelViewSet):
     queryset = TrafficVolume.objects.all()
     serializer_class = TrafficVolumeSerializer

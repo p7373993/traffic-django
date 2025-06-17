@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Intersection, TrafficVolume
+from .models import Intersection, TotalTrafficVolume, TrafficVolume
 
 class IntersectionSerializer(serializers.ModelSerializer):
     class Meta:
@@ -13,3 +13,8 @@ class TrafficVolumeSerializer(serializers.ModelSerializer):
         model = TrafficVolume
         fields = ['id', 'intersection', 'intersection_name', 'datetime', 'direction', 
                  'volume', 'is_simulated', 'created_at', 'updated_at'] 
+        
+class TotalTrafficVolumeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TotalTrafficVolume
+        fields = ['datetime', 'total_volume', 'average_speed']
