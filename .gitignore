@@ -13,3 +13,5 @@ media
 # Project specific
 backend/debug.log
 backend/django_log.txt
+backend/backend/__pycache__/
+backend/traffic/migrations/__pycache__/
