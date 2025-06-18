@@ -76,6 +76,7 @@ class Incident(models.Model):
     day = models.IntegerField()
     month = models.IntegerField()
     year = models.IntegerField()
-
+    intersection = models.ForeignKey("Intersection", on_delete=models.SET_NULL, null=True)
+    
     def __str__(self):
         return f"{self.ticket_number} - {self.location_name}"
