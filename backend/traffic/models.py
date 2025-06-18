@@ -55,3 +55,27 @@ class TotalTrafficVolume(models.Model):
 
     def __str__(self):
         return f"{self.intersection.name} - {self.datetime}: {self.total_volume}대, {self.average_speed}km/h"
+
+
+# traffic/models.py
+
+class Incident(models.Model):
+    incident_number = models.IntegerField()
+    ticket_number = models.IntegerField()
+    incident_type = models.CharField(max_length=100)
+    incident_detail_type = models.CharField(max_length=100)
+    location_name = models.CharField(max_length=200)
+    district = models.CharField(max_length=100)
+    managed_by = models.CharField(max_length=100)
+    assigned_to = models.CharField(max_length=100)
+    description = models.TextField()
+    operator = models.CharField(max_length=100)
+    status = models.CharField(max_length=100)
+    registered_at = models.DateTimeField()
+    last_status_update = models.DateTimeField()
+    day = models.IntegerField()
+    month = models.IntegerField()
+    year = models.IntegerField()
+
+    def __str__(self):
+        return f"{self.ticket_number} - {self.location_name}"
