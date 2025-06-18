@@ -1,10 +1,11 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import IntersectionViewSet, TrafficVolumeViewSet, get_intersection_traffic_data, get_all_intersections_traffic_data
+from .views import IntersectionViewSet, TrafficVolumeViewSet, get_intersection_traffic_data, get_all_intersections_traffic_data, IncidentViewSet
 
 router = DefaultRouter()
 router.register(r'intersections', IntersectionViewSet)
 router.register(r'traffic-volumes', TrafficVolumeViewSet)
+router.register(r'incidents', IncidentViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),

@@ -3,8 +3,8 @@ from rest_framework import viewsets
 from rest_framework.decorators import action, api_view
 from rest_framework.response import Response
 from django.db.models import Sum, Avg, OuterRef, Subquery
-from .models import Intersection, TrafficVolume, TotalTrafficVolume
-from .serializers import IntersectionSerializer, TotalTrafficVolumeSerializer, TrafficVolumeSerializer
+from .models import Intersection, TrafficVolume, TotalTrafficVolume, Incident
+from .serializers import IntersectionSerializer, TotalTrafficVolumeSerializer, TrafficVolumeSerializer, IncidentSerializer
 import logging
 import sys
 from datetime import datetime, timedelta
@@ -235,3 +235,7 @@ def get_all_intersections_traffic_data(request):
         return Response(data)
     except Exception as e:
         return Response({'error': str(e)}, status=400)
+
+class IncidentViewSet(viewsets.ReadOnlyModelViewSet):  # 조회 전용
+    queryset = Incident.objects.select_related("intersection").all().order_by("-registered_at")
+    serializer_class = IncidentSerializer

@@ -17,4 +17,6 @@ dependencies = [
     "fastkml>=1.1.0",
     "beautifulsoup4>=4.13.4",
     "lxml>=5.4.0",
+    "xlrd>=2.0.2",
+    "thefuzz>=0.22.1",
 ]
