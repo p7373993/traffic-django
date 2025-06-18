@@ -4,6 +4,7 @@
 - traffic_intersection (교차로 정보)
 - traffic_trafficvolume (교통량 데이터)
 - total_traffic_volume (총 교통량 데이터)
+- traffic_incident (사고/사건 데이터)
 
 ## 데이터 로드 방법
 
@@ -18,7 +19,11 @@ source venv/bin/activate
 
 2. 데이터베이스에 데이터를 로드합니다:
 ```bash
+# 교통량 데이터 로드
 python manage.py loaddata traffic_data.json
+
+# 사고/사건 데이터 로드
+python manage.py loaddata incident_data.json
 ```
 
 ## 주의사항
